@@ -9,12 +9,13 @@
 
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
+require('dotenv').config()
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 
-var client_id = '88fed3152bb54e868f74f921553e1ed2'; // Your client id
-var client_secret = 'ca29ff3936ff4a9f9881e36fdb6d8d89'; // Your secret
+var client_id = process.env.CLIENT_ID; // Your client id 
+var client_secret = process.env.CLIENT_SECRET; // Your secret
 var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
 
 /**
@@ -121,7 +122,9 @@ app.get('/callback', function(req, res) {
 app.get('/refresh_token', function(req, res) {
 
   // requesting access token from refresh token
+  console.log("refreshing...")
   var refresh_token = req.query.refresh_token;
+  console.log(refresh_token);
   var authOptions = {
     url: 'https://accounts.spotify.com/api/token',
     headers: { 'Authorization': 'Basic ' + (new Buffer(client_id + ':' + client_secret).toString('base64')) },
@@ -135,6 +138,7 @@ app.get('/refresh_token', function(req, res) {
   request.post(authOptions, function(error, response, body) {
     if (!error && response.statusCode === 200) {
       var access_token = body.access_token;
+      console.log("new access token" + access_token);
       res.send({
         'access_token': access_token
       });
