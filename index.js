@@ -9,14 +9,20 @@
 
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
+const session = require('express-session');
 require('dotenv').config()
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
+var bodyParser = require('body-parser')
 
 var client_id = process.env.CLIENT_ID; // Your client id 
 var client_secret = process.env.CLIENT_SECRET; // Your secret
 var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
+var users = require('./routes/users'); //route for users
+var mood = require('./routes/mood'); // route for mood
+var tracks = require('./routes/tracks'); //route for tracks
+
 
 /**
  * Generates a random string containing numbers and letters
@@ -36,10 +42,16 @@ var generateRandomString = function(length) {
 var stateKey = 'spotify_auth_state';
 
 var app = express();
-
 app.use(cors())
    .use(cookieParser());
-
+app.use(session({
+  secret:'supersecretkey',
+  resave:false,
+  saveUninitialized:false}));
+app.use(bodyParser.json());
+app.use('/users', users);
+// app.use('/mood', mood);
+// app.use('/tracks',tracks);
 app.get('/login', function(req, res) {
 
   var state = generateRandomString(16);
@@ -91,6 +103,8 @@ app.get('/callback', function(req, res) {
 
         var access_token = body.access_token,
             refresh_token = body.refresh_token;
+        req.session.access_token = access_token;
+        req.session.refresh_token = refresh_token;
 
         var options = {
           url: 'https://api.spotify.com/v1/me',
@@ -101,6 +115,11 @@ app.get('/callback', function(req, res) {
         // use the access token to access the Spotify Web API
         request.get(options, function(error, response, body) {
           console.log(body);
+          req.session.display_name = body.display_name;
+          req.session.email = body.email;
+          req.session.save();
+
+
         });
 
         // we can also pass the token to the browser to make requests from there
@@ -108,7 +127,7 @@ app.get('/callback', function(req, res) {
           querystring.stringify({
             access_token: access_token,
             refresh_token: refresh_token
-          }));
+          })); 
       } else {
         res.redirect('http://localhost:3000/#' +
           querystring.stringify({
